@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Traveller Sector Generator</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <div id="app">
+      <div class="header">
+        <h1 class="Title">Traveller Sector Generator</h1>
+      </div>
+      <div v-if="displaySettings" class="settings">
+        <p>
+          Welcome to my implementation of a sector generator for the Traveller
+          role playing game!
+        </p>
+        <p>
+          This generator uses the default rules as provided in Mongoose
+          Traveller 2nd edition. It creates a sector that is composed of 16
+          subsectors that are each 8 hexes wide and 10 hexes tall. These
+          subsectors are arranged in a 4 by 4 grid to form the sector. The
+          generator creates all of the planets in the sector and then constructs
+          trade routes between them.
+        </p>
+        <p>
+          The results are first shown in a map of the sector, where the hex
+          coordinates and planet name are inside each hex. In addition, trade
+          routes shown as lines connecting hexes together. Hover over a hex and
+          wait a moment to see the planet's name and UWP in a tooltip. A full
+          table of all planets is also available below the map the shows each
+          planet's location, UWP, bases, trade tags, and travel code.
+        </p>
+        <p>
+          To generate a sector, simple hit the generate button. If you wish to
+          alter the density of planets in each subsector, you may modify the
+          values in the "Subsector Densities" table. The default value is 0.5,
+          meaning each hex in the corresponding subsector has a 50% to have a
+          planet. A value of 1 will cause every hex in the subsector to have a
+          planet, while a value of 0 will result in no planets existing in the
+          subsector. The rulebook recommends using 0.5 as the default with 0.667
+          for densely populated subsectors, 0.333 for sparse subsectors, and
+          0.167 for rift subsectors. After results are generated, you may click
+          the regenerate button to generate another sector with the same
+          settings or hit the back button to return to this screen.
+        </p>
+        <p>
+          Please note that generation may take a little while, so do not refresh
+          the page or hit the generate button more then once.
+        </p>
+        <table class="densityMatrix">
+          <tr>
+            <th colspan="5">Subsector Densities</th>
+          </tr>
+          <tr>
+            <th></th>
+            <th>Col 1</th>
+            <th>Col 2</th>
+            <th>Col 3</th>
+            <th>Col 4</th>
+          </tr>
+          <tr class="densityRow">
+            <th>Row 1</th>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[0][0]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[0][1]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[0][2]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[0][3]" />
+            </td>
+          </tr>
+          <tr class="densityRow">
+            <th>Row 2</th>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[1][0]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[1][1]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[1][2]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[1][3]" />
+            </td>
+          </tr>
+          <tr class="densityRow">
+            <th>Row 3</th>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[2][0]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[2][1]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[2][2]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[2][3]" />
+            </td>
+          </tr>
+          <tr class="densityRow">
+            <th>Row 4</th>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[3][0]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[3][1]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[3][2]" />
+            </td>
+            <td>
+              <input class="densityInput" v-model="densityMatrix[3][3]" />
+            </td>
+          </tr>
+        </table>
+        <button @click="generate">Generate</button>
+      </div>
+      <div v-if="!displaySettings" class="results">
+        <svg
+          v-bind:width="Math.floor(subsectorMatrix[0].length/2)*(hexWidth)+(Math.ceil(subsectorMatrix[0].length/2)-1)*(hexHalfWidth)+(hexThreeQuartersWidth)"
+          v-bind:height="subsectorMatrix.length*(hexHeight)+(hexHalfHeight)"
+        >
+          <g v-for="(rowArray, yIndex) of subsectorMatrix" class="row">
+            <g v-for="(planet, xIndex) of rowArray">
+              <polygon
+                class="hex"
+                v-bind:points="(0+(hexThreeQuartersWidth)*xIndex) + ',' + ((hexHalfHeight)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexQuarterWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + (0+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexThreeQuartersWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + (0+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + ((hexHalfHeight)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexThreeQuartersWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + ((hexHeight)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexQuarterWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + ((hexHeight)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0))"
+              />
+            </g>
+          </g>
+          <g class="routes">
+            <line
+              v-for="routeSection of tradeRouteArray"
+              v-bind:x1="(hexHalfWidth)+(hexThreeQuartersWidth)*routeSection.startX"
+              v-bind:y1="(hexHalfHeight)+(hexHeight)*routeSection.startY+(routeSection.startX%2===1?(hexHalfHeight):0)"
+              v-bind:x2="(hexHalfWidth)+(hexThreeQuartersWidth)*routeSection.endX"
+              v-bind:y2="(hexHalfHeight)+(hexHeight)*routeSection.endY+(routeSection.endX%2===1?(hexHalfHeight):0)"
+            />
+          </g>
+          <g v-for="(rowArray, yIndex) of subsectorMatrix" class="row">
+            <g v-for="(planet, xIndex) of rowArray">
+              <text
+                class="hexCoords"
+                text-anchor="middle"
+                v-bind:x="(hexHalfWidth)+(hexThreeQuartersWidth)*xIndex"
+                v-bind:y="(hexHeight)/5+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)"
+              >
+                {{(xIndex).toString().padStart(2,
+                '0')}}{{(yIndex).toString().padStart(2, '0')}}
+              </text>
+              <text
+                class="planetName"
+                text-anchor="middle"
+                v-bind:style="{fontSize: planetNameSize + 'rem'}"
+                v-bind:x="(hexHalfWidth)+(hexThreeQuartersWidth)*xIndex"
+                v-bind:y="(hexHeight)*(7/8)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)"
+              >
+                {{planet?planet.name:""}}
+              </text>
+              <circle
+                v-if="planet"
+                class="system"
+                v-bind:cx="(hexHalfWidth)+(hexThreeQuartersWidth)*xIndex"
+                v-bind:cy="(hexHalfHeight)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)"
+                v-bind:r="(hexWidth)/10"
+              />
+            </g>
+          </g>
+          <g v-for="(rowArray, yIndex) of subsectorMatrix" class="row">
+            <g v-for="(planet, xIndex) of rowArray">
+              <polygon
+                class="overlayHex"
+                v-bind:points="(0+(hexThreeQuartersWidth)*xIndex) + ',' + ((hexHalfHeight)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexQuarterWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + (0+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexThreeQuartersWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + (0+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + ((hexHalfHeight)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexThreeQuartersWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + ((hexHeight)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0)) + ' ' + ((hexQuarterWidth)+(hexThreeQuartersWidth)*xIndex) + ',' + ((hexHeight)+(hexHeight)*yIndex+(xIndex%2===1?(hexHalfHeight):0))"
+              >
+                <title v-if="planet">
+                  {{planet.name + "\n"}}{{planet.profileString}}
+                </title>
+              </polygon>
+            </g>
+          </g>
+        </svg>
+        <div class="tableContainer">
+          <table class="planetsTable">
+            <tr>
+              <th>Name</th>
+              <th>Coordinates</th>
+              <th>Code</th>
+              <th>Bases</th>
+              <th>Trade Codes</th>
+              <th>Travel Code</th>
+            </tr>
+            <tr
+              v-for="planet of planetArray.slice(0, Math.ceil(planetArray.length / 2))"
+            >
+              <td>{{planet.name}}</td>
+              <td>{{planet.coordString}}</td>
+              <td>{{planet.profileString}}</td>
+              <td>{{planet.bases}}</td>
+              <td>{{planet.tradeCodes}}</td>
+              <td>{{planet.travelCode}}</td>
+            </tr>
+          </table>
+          <table class="planetsTable">
+            <tr>
+              <th>Name</th>
+              <th>Coordinates</th>
+              <th>Code</th>
+              <th>Bases</th>
+              <th>Trade Codes</th>
+              <th>Travel Code</th>
+            </tr>
+            <tr
+              v-for="planet of planetArray.slice(-Math.ceil(planetArray.length / 2))"
+            >
+              <td>{{planet.name}}</td>
+              <td>{{planet.coordString}}</td>
+              <td>{{planet.profileString}}</td>
+              <td>{{planet.bases}}</td>
+              <td>{{planet.tradeCodes}}</td>
+              <td>{{planet.travelCode}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <script>
+      const cubeDirections = [
+        { x: 1, y: -1, z: 0 },
+        { x: 1, y: 0, z: -1 },
+        { x: 0, y: 1, z: -1 },
+        { x: -1, y: 1, z: 0 },
+        { x: -1, y: 0, z: 1 },
+        { x: 0, y: -1, z: 1 },
+      ];
+
+      const cubeDiagonals = [
+        { x: 2, y: -1, z: -1 },
+        { x: 1, y: 1, z: -2 },
+        { x: -1, y: 2, z: -1 },
+        { x: -2, y: 1, z: 1 },
+        { x: -1, y: -1, z: 2 },
+        { x: 1, y: -2, z: 1 },
+      ];
+
+      const subsectorDensities = [
+        [0.5, 0.5, 0.5, 0.5],
+        [0.5, 0.5, 0.5, 0.5],
+        [0.5, 0.5, 0.5, 0.5],
+        [0.5, 0.5, 0.5, 0.5],
+      ];
+
+      let subsectorMatrix = [
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+        [
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ],
+      ];
+
+      const existingPathWeight = 1;
+      const inToEmptyWeight = 16;
+      const emptyToPopulatedWeight = 3;
+      const populatedToPopulatedWeight = 2.5;
+
+      let planets = [];
+      let evenPlanets = [];
+      let oddPlanets = [];
+      let tradeRoutes = [];
+
+      function cubeToOddQ(cube) {
+        var col = cube.x;
+        var row = cube.z + (cube.x - (cube.x & 1)) / 2;
+        return { x: col, y: row };
+      }
+
+      function oddQToCube(coords) {
+        let x = coords.x;
+        let z = coords.y - (coords.x - (coords.x & 1)) / 2;
+        let y = -x - z;
+        return { x: x, y: y, z: z };
+      }
+
+      function cubeAdd(cube1, cube2) {
+        return {
+          x: cube1.x + cube2.x,
+          y: cube1.y + cube2.y,
+          z: cube1.z + cube2.z,
+        };
+      }
+
+      function cubeMultiplyConstant(cube, constant) {
+        return {
+          x: cube.x * constant,
+          y: cube.y * constant,
+          z: cube.z * constant,
+        };
+      }
+
+      function getCubeDirection(direction) {
+        return cubeDirections[direction];
+      }
+
+      function getCubeDiagonal(direction) {
+        return cubeDiagonals[direction];
+      }
+
+      function getCubeNeighbor(cube, direction, distance) {
+        return cubeAdd(
+          cube,
+          cubeMultiplyConstant(getCubeDirection(direction), distance)
+        );
+      }
+
+      function getCubeDiagonalNeighbor(cube, direction, distance) {
+        return cubeAdd(
+          cube,
+          cubeMultipleConstant(getCubeDiagonal(direction), distance)
+        );
+      }
+
+      function cubeDistance(cube1, cube2) {
+        return (
+          (Math.abs(cube1.x - cube2.x) +
+            Math.abs(cube1.y - cube2.y) +
+            Math.abs(cube1.z - cube2.z)) /
+          2
+        );
+      }
+
+      function getHexDistance(hex1, hex2) {
+        let cube1 = oddQToCube(hex1);
+        let cube2 = oddQToCube(hex2);
+        return cubeDistance(cube1, cube2);
+      }
+
+      function getHexNeighbor(hex, direction, distance) {
+        let cube = oddQToCube(hex);
+        let neighbor = getCubeNeighbor(cube, direction, distance);
+        return cubeToOddQ(neighbor);
+      }
+
+      function getAllHexNeighbors(hex) {
+        let neighbors = [];
+        for (let i = 0; i < cubeDirections.length; i++) {
+          let neighbor = getHexNeighbor(hex, i, 1);
+          if (isBetween(neighbor.x, 0, 31) && isBetween(neighbor.y, 0, 39)) {
+            neighbors.push(neighbor);
+          }
+        }
+        return neighbors;
+      }
+
+      function getHexDiagonalNeighbor(hex, direction, distance) {
+        let cube = oddQToCube(hex);
+        let neighbor = getCubeDiagonalNeighbor(cube, direction, distance);
+        return cubeToOddQ(neighbor);
+      }
+
+      function getNHopNeighbors(hex, maxDistance) {
+        let cube = oddQToCube(hex);
+
+        const results = [];
+        for (let x = cube.x - maxDistance; x <= cube.x + maxDistance; x++) {
+          for (let y = cube.y - maxDistance; y <= cube.y + maxDistance; y++) {
+            let z = -x - y;
+            let neighborHex = cubeToOddQ({ x: x, y: y, z: z });
+
+            if (
+              !isBetween(neighborHex.x, 0, 31) ||
+              !isBetween(neighborHex.y, 0, 39)
+            ) {
+              continue;
+            }
+
+            if (subsectorMatrix[neighborHex.y][neighborHex.x]) {
+              results.push(subsectorMatrix[neighborHex.y][neighborHex.x]);
+            }
+          }
+        }
+
+        return results;
+      }
+
+      function hexCoordsToString(hex) {
+        return (
+          hex.x.toString().padStart(2, "0") + hex.y.toString().padStart(2, "0")
+        );
+      }
+
+      function sortOpenHexes(openHexes) {
+        openHexes.sort((a, b) => a.f - b.f);
+      }
+
+      function aStarHeuristic(hex, target) {
+        return getHexDistance(hex, target);
+      }
+
+      function routeAlreadyExists(from, to) {
+        let tempRoute = {
+          startX: from.x,
+          startY: from.y,
+          endX: to.x,
+          endY: to.y,
+        };
+        for (const route of tradeRoutes) {
+          if (isSameRouteSegment(route, tempRoute)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function calculateHexMoveWeight(from, to) {
+        //Check if the path already exists as this is the best case
+        if (routeAlreadyExists(from, to)) {
+          //path exists between the hexes already
+          return existingPathWeight;
+        }
+
+        //check if the destination hex is empty
+        if (subsectorMatrix[to.y][to.x]) {
+          //Check if we are coming from a populated hex
+          if (subsectorMatrix[from.y][from.x]) {
+            //we are coming from a populated hex
+            return populatedToPopulatedWeight;
+          }
+
+          //We are coming from an empty hex
+          return emptyToPopulatedWeight;
+        }
+
+        //Going to empty hex
+        return inToEmptyWeight;
+      }
+
+      function constructRoute(endNode) {
+        let currNode = endNode;
+        let nextNode;
+        let routeArray = [];
+
+        do {
+          nextNode = currNode.parent;
+          routeArray.push({
+            startX: currNode.location.x,
+            startY: currNode.location.y,
+            endX: nextNode.location.x,
+            endY: nextNode.location.y,
+          });
+          currNode = nextNode;
+        } while (currNode.parent !== null);
+
+        console.log(
+          routeArray.map(
+            (route) =>
+              `${hexCoordsToString({
+                x: route.startX,
+                y: route.startY,
+              })}->${hexCoordsToString({ x: route.endX, y: route.endY })}`
+          )
+        );
+        return routeArray;
+      }
+
+      function aStarSearch(startHex, targetHex) {
+        const startHexString = hexCoordsToString(startHex);
+        const targetHexString = hexCoordsToString(targetHex);
+
+        const openHexes = [
+          { location: startHex, g: 0, f: 0, step: 0, parent: null },
+        ];
+
+        while (openHexes.length > 0) {
+          let currHex = openHexes.shift();
+          let currHexString = hexCoordsToString(currHex.location);
+
+          //console.log(`Visiting hex ${currHexString} with f of ${currHex.f}`);
+
+          if (currHexString === targetHexString) {
+            return constructRoute(currHex);
+          }
+
+          //This path has already reached the max of 4 parsecs, so do not bother checking it's neighbors
+          if (currHex.step === 4) {
+            continue;
+          }
+
+          const neighbors = getAllHexNeighbors(currHex.location);
+
+          for (const neighbor of neighbors) {
+            //If both the current hex and the found neighbor are empty, or if
+            if (
+              !subsectorMatrix[neighbor.y][neighbor.x] &&
+              !subsectorMatrix[currHex.location.y][currHex.location.x]
+            ) {
+              continue;
+            }
+
+            let weight = calculateHexMoveWeight(currHex.location, neighbor);
+            let neighborG = currHex.g + weight;
+            let neighborString = hexCoordsToString(neighbor);
+            //console.log(`Looking at neighbor ${neighborString} with weight ${weight}, g ${neighborG}, and f ${neighborG + aStarHeuristic(neighbor, targetHex)}`);
+            openHexes.push({
+              location: neighbor,
+              g: neighborG,
+              f: neighborG + aStarHeuristic(neighbor, targetHex),
+              step: currHex.step + 1,
+              parent: currHex,
+            });
+          }
+
+          //Sort the open hexes list to ensure the lowest f is pulled next
+          sortOpenHexes(openHexes);
+        }
+
+        console.log("No path was found");
+        return [];
+      }
+
+      function shouldSaveTradeRoute(planetA, planetB) {
+        if (!planetA || !planetB) {
+          return false;
+        }
+
+        const aIsFirstCategory =
+          planetA.tradeCodes.includes("In") ||
+          planetA.tradeCodes.includes("Ht");
+        const aIsSecondCategory =
+          planetA.tradeCodes.includes("As") ||
+          planetA.tradeCodes.includes("De") ||
+          planetA.tradeCodes.includes("Ie") ||
+          planetA.tradeCodes.includes("Ni");
+        const aIsThirdCategory =
+          planetA.tradeCodes.includes("Hi") ||
+          planetA.tradeCodes.includes("Ri");
+        const aIsFourthCategory =
+          planetA.tradeCodes.includes("Ag") ||
+          planetA.tradeCodes.includes("Ga") ||
+          planetA.tradeCodes.includes("Wa");
+
+        const bIsFirstCategory =
+          planetB.tradeCodes.includes("In") ||
+          planetB.tradeCodes.includes("Ht");
+        const bIsSecondCategory =
+          planetB.tradeCodes.includes("As") ||
+          planetB.tradeCodes.includes("De") ||
+          planetB.tradeCodes.includes("Ie") ||
+          planetB.tradeCodes.includes("Ni");
+        const bIsThirdCategory =
+          planetB.tradeCodes.includes("Hi") ||
+          planetB.tradeCodes.includes("Ri");
+        const bIsFourthCategory =
+          planetB.tradeCodes.includes("Ag") ||
+          planetB.tradeCodes.includes("Ga") ||
+          planetB.tradeCodes.includes("Wa");
+
+        const firstCase =
+          (aIsFirstCategory && bIsSecondCategory) ||
+          (aIsSecondCategory && bIsFirstCategory);
+        const secondCase =
+          (aIsThirdCategory && bIsFourthCategory) ||
+          (aIsFourthCategory && bIsThirdCategory);
+
+        return firstCase || secondCase;
+      }
+
+      function isSamePair(a, b) {
+        return (
+          (a.to === b.to && a.from === b.from) ||
+          (a.to === b.from && a.from === b.to)
+        );
+      }
+
+      function isSameRouteSegment(a, b) {
+        return (
+          (a.startX === b.startX &&
+            a.startY === b.startY &&
+            a.endX === b.endX &&
+            a.endY === b.endY) ||
+          (a.startX === b.endX &&
+            a.startY === b.endY &&
+            a.endX === b.startX &&
+            a.endY === b.startY)
+        );
+      }
+
+      function addRouteToMasterList(routeArray) {
+        for (const segment of routeArray) {
+          if (tradeRoutes.some((route) => isSameRouteSegment(route, segment))) {
+            //done add duplicate route segments if they are already in the master list
+            continue;
+          }
+
+          tradeRoutes.push(segment);
+        }
+      }
+
+      function generateTradeRoutes() {
+        const searchedPairs = [];
+
+        for (const fromPlanet of planets) {
+          const fromHex = { x: fromPlanet.xCoord, y: fromPlanet.yCoord };
+          const neighbors = getNHopNeighbors(fromHex, 4);
+          neighbors.sort(comparePlanetsByPopAndTech);
+
+          for (const toPlanet of neighbors) {
+            const newPair = {
+              from: fromPlanet.coordString,
+              to: toPlanet.coordString,
+            };
+
+            //This pair of planets has been searched, so do not do it again
+            if (searchedPairs.some((pair) => isSamePair(pair, newPair))) {
+              continue;
+            }
+
+            searchedPairs.push(newPair);
+
+            //Either planets are the same or their tags to not warrent a trade route, so skip this pair
+            if (
+              fromPlanet.coordString === toPlanet.coordString ||
+              !shouldSaveTradeRoute(fromPlanet, toPlanet)
+            ) {
+              continue;
+            }
+
+            const toHex = { x: toPlanet.xCoord, y: toPlanet.yCoord };
+
+            if (getHexDistance(fromHex, toHex) > 4) {
+              //Planets are out of range for a trade route, so skip this pair
+              continue;
+            }
+            console.log(
+              `Finding path between ${fromPlanet.coordString} and ${toPlanet.coordString}`
+            );
+            addRouteToMasterList(aStarSearch(fromHex, toHex));
+          }
+        }
+      }
+
+      function rollDie(modifier = 0) {
+        return Math.floor(Math.random() * 6 + 1) + modifier;
+      }
+
+      function rollTwoDice(modifier = 0, min = 2, max = 12) {
+        die1 = rollDie();
+        die2 = rollDie();
+        return Math.min(Math.max(die1 + die2 + modifier, min), max);
+      }
+
+      function getStarPortCode(value) {
+        switch (value) {
+          case 2:
+            return "X";
+          case 3:
+          case 4:
+            return "E";
+          case 5:
+          case 6:
+            return "D";
+          case 7:
+          case 8:
+            return "C";
+          case 9:
+          case 10:
+            return "B";
+          case 11:
+            return "A";
+        }
+      }
+
+      function getValueCode(value) {
+        let val = Math.max(value, 0);
+
+        if (val < 10) {
+          return val.toString();
+        } else {
+          switch (val) {
+            case 10:
+              return "A";
+            case 11:
+              return "B";
+            case 12:
+              return "C";
+            case 13:
+              return "D";
+            case 14:
+              return "E";
+            case 15:
+              return "F";
+            case 16:
+              return "G";
+            case 17:
+              return "H";
+            case 18:
+              return "I";
+            case 19:
+              return "J";
+            case 20:
+              return "K";
+          }
+        }
+
+        console.log(value);
+      }
+
+      function calculateTechLevel(
+        starPort,
+        size,
+        atmosphere,
+        hydrographics,
+        population,
+        government,
+        enforceMin
+      ) {
+        let minTechLevel = 0;
+        let starPortMod = 0;
+        let sizeMod = 0;
+        let atmosphereMod = 0;
+        let hydrographicsMod = 0;
+        let populationMod = 0;
+        let governmentMod = 0;
+
+        if (atmosphere === 0 || atmosphere === 1) {
+          minTechLevel = 8;
+        } else if (atmosphere === 2 || atmosphere === 3) {
+          minTechLevel = 5;
+        } else if (atmosphere === 4 || atmosphere === 7 || atmosphere == 9) {
+          minTechLevel = 3;
+        } else if (atmosphere === 10) {
+          minTechLevel = 8;
+        } else if (atmosphere === 11) {
+          minTechLevel = 9;
+        } else if (atmosphere === 12) {
+          minTechLevel = 10;
+        } else if (atmosphere === 13 || atmosphere === 14) {
+          minTechLevel = 5;
+        } else if (atmosphere === 15) {
+          minTechLevel = 8;
+        }
+
+        if (starPort >= 11) {
+          starPortMod = 6;
+        } else if (starPort === 9 || starPort === 10) {
+          starPortMod = 4;
+        } else if (starPort === 7 || starPort === 8) {
+          starPortMod = 2;
+        } else if (starPort <= 2) {
+          starPortMod = -4;
+        }
+
+        if (size <= 1) {
+          sizeMod = 2;
+        } else if (size >= 2 && size <= 4) {
+          sizeMod = 1;
+        }
+
+        if (atmosphere <= 3 || atmosphere >= 10) {
+          atmosphereMod = 1;
+        }
+
+        if (hydrographics === 0 || hydrographics === 9) {
+          hydrographicsMod = 1;
+        } else if (hydrographics === 10) {
+          hydrographicsMod = 2;
+        }
+
+        if ((population >= 1 && population <= 5) || population === 8) {
+          populationMod = 1;
+        } else if (population === 9) {
+          populationMod = 2;
+        } else if (population === 10) {
+          populationMod = 4;
+        }
+
+        if (government === 0 || government === 5) {
+          governmentMod = 1;
+        } else if (government === 7) {
+          governmentMod = 2;
+        } else if (government === 13 || government === 14) {
+          governmentMod = -2;
+        }
+
+        const randomTechLevel =
+          rollDie() +
+          starPortMod +
+          sizeMod +
+          atmosphereMod +
+          hydrographicsMod +
+          populationMod +
+          governmentMod;
+
+        return enforceMin
+          ? Math.max(minTechLevel, randomTechLevel)
+          : Math.max(randomTechLevel, 0);
+      }
+
+      function generateBases(starPortCode, hasGasGiant) {
+        let hasNaval = false;
+        let hasScout = false;
+        let hasResearch = false;
+        let hasTAS = false;
+
+        switch (starPortCode) {
+          case "A":
+            hasNaval = rollTwoDice() >= 8;
+            hasScout = rollTwoDice() >= 10;
+            hasResearch = rollTwoDice >= 8;
+            hasTAS = true;
+            break;
+          case "B":
+            hasNaval = rollTwoDice() >= 8;
+            hasScout = rollTwoDice() >= 8;
+            hasResearch = rollTwoDice() >= 10;
+            hasTAS = true;
+            break;
+          case "C":
+            hasScout = rollTwoDice() >= 8;
+            hasResearch = rollTwoDice() >= 10;
+            hasTAS = rollTwoDice() >= 10;
+            break;
+          case "D":
+            hasScount = rollTwoDice() >= 7;
+        }
+
+        const baseString =
+          (hasNaval ? "N" : "") +
+          (hasScout ? "S" : "") +
+          (hasResearch ? "R" : "") +
+          (hasTAS ? "T" : "") +
+          (hasGasGiant ? "G" : "");
+        return baseString;
+      }
+
+      function generateTradeCodes(
+        size,
+        atmosphere,
+        hydrographics,
+        population,
+        government,
+        lawLevel,
+        techLevel
+      ) {
+        let tradeCodes = [];
+
+        if (
+          atmosphere >= 4 &&
+          atmosphere <= 9 &&
+          hydrographics >= 4 &&
+          hydrographics <= 8 &&
+          population >= 5 &&
+          population <= 7
+        ) {
+          tradeCodes.push("Ag");
+        }
+
+        if (size === 0 && atmosphere === 0 && hydrographics === 0) {
+          tradeCodes.push("As");
+        }
+
+        if (population === 0 && government === 0 && lawLevel === 0) {
+          tradeCodes.push("Ba");
+        }
+
+        if (atmosphere >= 2 && hydrographics === 0) {
+          tradeCodes.push("De");
+        }
+
+        if (atmosphere >= 10 && hydrographics >= 1) {
+          tradeCodes.push("Fl");
+        }
+
+        if (
+          size >= 6 &&
+          size <= 8 &&
+          (atmosphere === 5 || atmosphere === 6 || atmosphere === 8) &&
+          hydrographics >= 5 &&
+          hydrographics <= 7
+        ) {
+          tradeCodes.push("Ga");
+        }
+
+        if (population >= 9) {
+          tradeCodes.push("Hi");
+        }
+
+        if (techLevel >= 12) {
+          tradeCodes.push("Ht");
+        }
+
+        if ((atmosphere === 0 || atmosphere === 1) && hydrographics >= 1) {
+          tradeCodes.push("Ic");
+        }
+
+        if (
+          ((atmosphere >= 0 && atmosphere <= 2) ||
+            atmosphere === 4 ||
+            atmosphere === 7 ||
+            atmosphere === 9) &&
+          population >= 9
+        ) {
+          tradeCodes.push("In");
+        }
+
+        if (population <= 3) {
+          tradeCodes.push("Lo");
+        }
+
+        if (techLevel <= 5) {
+          tradeCodes.push("Lt");
+        }
+
+        if (
+          atmosphere >= 0 &&
+          atmosphere <= 3 &&
+          hydrographics >= 0 &&
+          hydrographics <= 3 &&
+          population >= 6
+        ) {
+          tradeCodes.push("Na");
+        }
+
+        if (population >= 0 && population <= 6) {
+          tradeCodes.push("Ni");
+        }
+
+        if (
+          atmosphere >= 2 &&
+          atmosphere <= 5 &&
+          hydrographics >= 0 &&
+          hydrographics <= 3
+        ) {
+          tradeCodes.push("Po");
+        }
+
+        if (
+          (atmosphere === 6 || atmosphere === 8) &&
+          population >= 6 &&
+          population <= 8 &&
+          government >= 4 &&
+          government <= 9
+        ) {
+          tradeCodes.push("Ri");
+        }
+
+        if (atmosphere === 0) {
+          tradeCodes.push("Va");
+        }
+
+        if (hydrographics >= 10) {
+          tradeCodes.push("Wa");
+        }
+
+        return tradeCodes.join(" ");
+      }
+
+      function generateTravelCode(atmosphere, government, lawLevel) {
+        if (
+          atmosphere >= 10 ||
+          government === 0 ||
+          government === 7 ||
+          government === 10 ||
+          lawLevel === 0 ||
+          lawLevel >= 9
+        ) {
+          return "A";
+        }
+
+        return "";
+      }
+
+      function capitalize(word) {
+        if (typeof word !== "string") return "";
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      }
+
+      function nameGen() {
+        const nm1 = [
+          "b",
+          "c",
+          "ch",
+          "d",
+          "g",
+          "h",
+          "k",
+          "l",
+          "m",
+          "n",
+          "p",
+          "r",
+          "s",
+          "t",
+          "th",
+          "v",
+          "x",
+          "y",
+          "z",
+          "",
+          "",
+          "",
+          "",
+          "",
+        ];
+        const nm2 = ["a", "e", "i", "o", "u"];
+        const nm3 = [
+          "b",
+          "bb",
+          "br",
+          "c",
+          "cc",
+          "ch",
+          "cr",
+          "d",
+          "dr",
+          "g",
+          "gn",
+          "gr",
+          "l",
+          "ll",
+          "lr",
+          "lm",
+          "ln",
+          "lv",
+          "m",
+          "n",
+          "nd",
+          "ng",
+          "nk",
+          "nn",
+          "nr",
+          "nv",
+          "nz",
+          "ph",
+          "s",
+          "str",
+          "th",
+          "tr",
+          "v",
+          "z",
+        ];
+        const nm3b = [
+          "b",
+          "br",
+          "c",
+          "ch",
+          "cr",
+          "d",
+          "dr",
+          "g",
+          "gn",
+          "gr",
+          "l",
+          "ll",
+          "m",
+          "n",
+          "ph",
+          "s",
+          "str",
+          "th",
+          "tr",
+          "v",
+          "z",
+        ];
+        const nm4 = [
+          "a",
+          "e",
+          "i",
+          "o",
+          "u",
+          "a",
+          "e",
+          "i",
+          "o",
+          "u",
+          "a",
+          "e",
+          "i",
+          "o",
+          "u",
+          "ae",
+          "ai",
+          "ao",
+          "au",
+          "a",
+          "ea",
+          "ei",
+          "eo",
+          "eu",
+          "e",
+          "ua",
+          "ue",
+          "ui",
+          "u",
+          "ia",
+          "ie",
+          "iu",
+          "io",
+          "oa",
+          "ou",
+          "oi",
+          "o",
+        ];
+        const nm5 = [
+          "turn",
+          "ter",
+          "nus",
+          "rus",
+          "tania",
+          "hiri",
+          "hines",
+          "gawa",
+          "nides",
+          "carro",
+          "rilia",
+          "stea",
+          "lia",
+          "lea",
+          "ria",
+          "nov",
+          "phus",
+          "mia",
+          "nerth",
+          "wei",
+          "ruta",
+          "tov",
+          "zuno",
+          "vis",
+          "lara",
+          "nia",
+          "liv",
+          "tera",
+          "gantu",
+          "yama",
+          "tune",
+          "ter",
+          "nus",
+          "cury",
+          "bos",
+          "pra",
+          "thea",
+          "nope",
+          "tis",
+          "clite",
+        ];
+        const nm6 = [
+          "una",
+          "ion",
+          "iea",
+          "iri",
+          "illes",
+          "ides",
+          "agua",
+          "olla",
+          "inda",
+          "eshan",
+          "oria",
+          "ilia",
+          "erth",
+          "arth",
+          "orth",
+          "oth",
+          "illon",
+          "ichi",
+          "ov",
+          "arvis",
+          "ara",
+          "ars",
+          "yke",
+          "yria",
+          "onoe",
+          "ippe",
+          "osie",
+          "one",
+          "ore",
+          "ade",
+          "adus",
+          "urn",
+          "ypso",
+          "ora",
+          "iuq",
+          "orix",
+          "apus",
+          "ion",
+          "eon",
+          "eron",
+          "ao",
+          "omia",
+        ];
+        const nm7 = [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O",
+          "P",
+          "Q",
+          "R",
+          "S",
+          "T",
+          "U",
+          "V",
+          "W",
+          "X",
+          "Y",
+          "Z",
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+        ];
+
+        let nameDeterminer = Math.floor(Math.random() * 10);
+
+        if (nameDeterminer < 2) {
+          const rnd = (Math.random() * nm1.length) | 0;
+          const rnd2 = (Math.random() * nm2.length) | 0;
+          let rnd3 = (Math.random() * nm3.length) | 0;
+          while (nm1[rnd] === nm3[rnd3]) {
+            rnd3 = (Math.random() * nm3.length) | 0;
+          }
+          const rnd4 = (Math.random() * nm4.length) | 0;
+          const rnd5 = (Math.random() * nm5.length) | 0;
+          return capitalize(
+            nm1[rnd] + nm2[rnd2] + nm3[rnd3] + nm4[rnd4] + nm5[rnd5]
+          );
+        } else if (nameDeterminer < 4) {
+          const rnd = (Math.random() * nm1.length) | 0;
+          const rnd2 = (Math.random() * nm2.length) | 0;
+          let rnd3 = (Math.random() * nm3.length) | 0;
+          while (nm1[rnd] === nm3[rnd3]) {
+            rnd3 = (Math.random() * nm3.length) | 0;
+          }
+          const rnd4 = (Math.random() * nm6.length) | 0;
+          return capitalize(nm1[rnd] + nm2[rnd2] + nm3[rnd3] + nm6[rnd4]);
+        } else if (nameDeterminer < 6) {
+          const rnd = (Math.random() * nm1.length) | 0;
+          const rnd4 = (Math.random() * nm4.length) | 0;
+          const rnd5 = (Math.random() * nm5.length) | 0;
+          return capitalize(nm1[rnd] + nm4[rnd4] + nm5[rnd5]);
+        } else if (nameDeterminer < 8) {
+          const rnd = (Math.random() * nm1.length) | 0;
+          const rnd2 = (Math.random() * nm2.length) | 0;
+          let rnd3 = (Math.random() * nm3b.length) | 0;
+          while (nm1[rnd] === nm3b[rnd3]) {
+            rnd3 = (Math.random() * nm3b.length) | 0;
+          }
+          const rnd4 = (Math.random() * nm2.length) | 0;
+          const rnd5 = (Math.random() * nm5.length) | 0;
+          return capitalize(
+            nm3b[rnd3] + nm2[rnd2] + nm1[rnd] + nm2[rnd4] + nm5[rnd5]
+          );
+        } else {
+          const rnd = (Math.random() * nm3b.length) | 0;
+          const rnd2 = (Math.random() * nm6.length) | 0;
+          const rnd3 = (Math.random() * nm7.length) | 0;
+          const rnd4 = (Math.random() * nm7.length) | 0;
+          const rnd5 = (Math.random() * nm7.length) | 0;
+          const rnd6 = (Math.random() * nm7.length) | 0;
+          return capitalize(
+            nm3b[rnd] +
+              nm6[rnd2] +
+              " " +
+              nm7[rnd3] +
+              nm7[rnd4] +
+              nm7[rnd5] +
+              nm7[rnd6]
+          );
+        }
+      }
+
+      function generatePlanet(x, y) {
+        const hasGasGiant = rollTwoDice() >= 10 ? false : true;
+        const size = rollTwoDice(-2, 0, 10);
+        const sizeCode = getValueCode(size);
+        const atmosphere = rollTwoDice(-7 + size, 0, 15);
+        const atmosphereCode = getValueCode(atmosphere);
+        let temperatureMod = 0;
+        if (atmosphere === 2 || atmosphere === 3) {
+          temperatureMod = -2;
+        } else if (atmosphere === 4 || atmosphere === 5 || atmosphere === 14) {
+          temperatureMod = -1;
+        } else if (atmosphere === 6 || atmosphere === 7) {
+          temperatureMod = 0;
+        } else if (atmosphere === 8 || atmosphere === 9) {
+          temperatureMod = 1;
+        } else if (
+          atmosphere === 10 ||
+          atmosphere === 13 ||
+          atmosphere === 15
+        ) {
+          temperatureMod = 2;
+        } else if (atmosphere === 11 || atmosphere === 12) {
+          temperatureMod = 6;
+        }
+        const temperature = rollTwoDice(temperatureMod, 2, 12);
+        let hydroMod = -7 + atmosphere;
+
+        if (
+          atmosphere === 0 ||
+          atmosphere === 1 ||
+          atmosphere === 10 ||
+          atmosphere === 11 ||
+          atmosphere === 12
+        ) {
+          hydroMod = -4;
+        }
+
+        if (atmosphere !== 13) {
+          if (temperature === 10 || temperature === 11) {
+            hydroMod += -2;
+          } else if (temperature >= 12) {
+            hydroMod += -6;
+          }
+        }
+        const hydrographics = size > 1 ? rollTwoDice(hydroMod, 0, 10) : 0;
+        const hydrographicsCode = getValueCode(hydrographics);
+        const population = rollTwoDice(-2, 0, 12);
+        const populationCode = getValueCode(population);
+
+        const government =
+          population === 0 ? 0 : rollTwoDice(-7 + population, 0, 15);
+        const governmentCode = getValueCode(government);
+        let factionNumMod = 0;
+        if (government === 0 || government === 7) {
+          factionNumMod = 1;
+        } else if (government >= 10) {
+          factionNumMod = -1;
+        }
+
+        let factions = [];
+
+        const factionNumber =
+          population === 0 ? 0 : Math.ceil(rollDie() / 2) + factionNumMod;
+
+        for (let f = 0; f < factionNumber; f++) {
+          const faction = {
+            strength: rollTwoDice(),
+            government: getValueCode(rollTwoDice(-7 + population, 0, 15)),
+          };
+          factions.push(faction);
+        }
+
+        const culture = population === 0 ? 0 : rollDie() * 10 + rollDie();
+        const lawLevel =
+          population === 0 ? 0 : rollTwoDice(-7 + government, 0, 99);
+        const lawLevelCode = getValueCode(lawLevel);
+        let starPortMod = 0;
+        if (population >= 10) {
+          starPortMod = 2;
+        } else if (population >= 8) {
+          starPortMod = 1;
+        } else if (population <= 2) {
+          starPortMod = -2;
+        } else if (population <= 4) {
+          starPortMod = -1;
+        }
+        const starPort = rollTwoDice(starPortMod, 2, 11);
+        const starPortCode = getStarPortCode(starPort);
+        const techLevel =
+          population === 0
+            ? 0
+            : calculateTechLevel(
+                starPort,
+                size,
+                atmosphere,
+                hydrographics,
+                population,
+                government,
+                false
+              );
+        const profile =
+          starPortCode +
+          sizeCode +
+          atmosphereCode +
+          hydrographicsCode +
+          populationCode +
+          governmentCode +
+          lawLevelCode +
+          "-" +
+          techLevel.toString();
+
+        const bases = generateBases(starPortCode, hasGasGiant);
+        const tradeCodes = generateTradeCodes(
+          size,
+          atmosphere,
+          hydrographics,
+          population,
+          government,
+          lawLevel,
+          techLevel
+        );
+        const travelCode = generateTravelCode(atmosphere, government, lawLevel);
+
+        planet = {
+          xCoord: x,
+          yCoord: y,
+          coordString:
+            x.toString().padStart(2, "0") + y.toString().padStart(2, "0"),
+          name: nameGen(),
+          hasGasGiant: hasGasGiant,
+          size: sizeCode,
+          atmosphere: atmosphereCode,
+          temperature: temperature,
+          hydrographics: hydrographicsCode,
+          population: populationCode,
+          governemnt: governmentCode,
+          culture: culture,
+          factions: factions,
+          lawLevel: lawLevelCode,
+          starPort: starPortCode,
+          techLevel: techLevel,
+          profileString: profile,
+          bases: bases,
+          tradeCodes: tradeCodes,
+          travelCode: travelCode,
+        };
+
+        planets.push(planet);
+        return planet;
+      }
+
+      function generatePlanetLocations() {
+        for (let i = 0; i < subsectorDensities.length; i++) {
+          for (let j = 0; j < subsectorDensities[i].length; j++) {
+            for (
+              let y = 0;
+              y < subsectorMatrix.length / subsectorDensities.length;
+              y++
+            ) {
+              for (
+                let x = 0;
+                x < subsectorMatrix[y].length / subsectorDensities[i].length;
+                x++
+              ) {
+                subsectorMatrix[y + 10 * i][x + 8 * j] =
+                  Math.random() < subsectorDensities[i][j]
+                    ? generatePlanet(x + 8 * j, y + 10 * i)
+                    : null;
+              }
+            }
+          }
+        }
+        console.log(subsectorMatrix);
+      }
+
+      function isSameRoute(a, b) {
+        if (
+          (a.startPlanet.coordString === b.startPlanet.coordString &&
+            a.endPlanet.coordString === b.endPlanet.coordString &&
+            a.pathString.join() === b.pathString.join()) ||
+          (a.startPlanet.coordString === b.endPlanet.coordString &&
+            a.endPlanet.coordString === b.startPlanet.coordString &&
+            a.pathString.join() === b.pathString.reverse().join())
+        ) {
+          return true;
+        }
+
+        return false;
+      }
+
+      function isSimilarRoute(a, b) {
+        if (
+          (a.startPlanet.coordString === b.startPlanet.coordString &&
+            a.endPlanet.coordString === b.endPlanet.coordString) ||
+          (a.startPlanet.coordString === b.endPlanet.coordString &&
+            a.endPlanet.coordString === b.startPlanet.coordString)
+        ) {
+          return true;
+        }
+
+        return false;
+      }
+
+      function doesRouteEndAtPlanet(route, planet) {
+        return route.endPlanet.coordString === planet.coordString;
+      }
+
+      function calculateRouteOverlap(a, b) {
+        let overlapCounter = 0;
+
+        for (let aLoop = 0; aLoop < a.pathString.length - 1; aLoop++) {
+          for (let bLoop = 0; bLoop < b.pathString.length - 1; bLoop++) {
+            if (
+              (a.pathString[aLoop] === b.pathString[bLoop] &&
+                a.pathString[aLoop + 1] === b.pathString[bLoop + 1]) ||
+              (a.pathString[aLoop] === b.pathString[bLoop + 1] &&
+                a.pathString[aLoop + 1] === b.pathString[bLoop])
+            ) {
+              overlapCounter += 1;
+            }
+          }
+        }
+
+        return overlapCounter;
+      }
+
+      function isRouteBetter(a, b, savedRoutes) {
+        let aHighScore = 0;
+        let bHighScore = 0;
+
+        for (const route of savedRoutes) {
+          //Find the highest percent overlap for each route
+          let aScore = calculateRouteOverlap(a, route) / a.pathString.length;
+          let bScore = calculateRouteOverlap(b, route) / b.pathString.length;
+
+          aHighScore = aScore > aHighScore ? aScore : aHighScore;
+          bHighScore = bScore > bHighScore ? bScore : bHighScore;
+        }
+
+        if (aHighScore !== bHighScore) {
+          console.log("Overlap tiebreaker");
+          return aHighScore > bHighScore;
+        }
+
+        if (a.distance !== b.distance) {
+          return a.distance < b.distance;
+        }
+
+        return a.hopNumber > b.hopNumber;
+      }
+
+      function willNewRouteBeBetter(newRoute, hopDistance, oldRoute) {
+        if (newRoute.distance + hopDistance !== oldRoute.distance) {
+          return newRoute.distance + hopDistance < oldRoute.distance;
+        }
+
+        return newRoute.hopNumber + 1 > oldRoute.hopNumber;
+      }
+
+      function isSamePlanet(a, b) {
+        return a.coordString === b.coordString;
+      }
+
+      function isSubRoute(subRoute, newRoute) {
+        let newRouteString = newRoute.pathString.join();
+        return (
+          newRouteString.includes(subRoute.pathString.join()) ||
+          newRouteString.includes(subRoute.pathString.reverse().join())
+        );
+      }
+
+      function comparePlanetsByCoords(a, b) {
+        if (a.xCoord === b.xCoord) {
+          return a.yCoord - b.yCoord;
+        }
+
+        return a.xCoord - b.xCoord;
+      }
+
+      function comparePlanetsByPopAndTech(a, b) {
+        return b.techLevel + b.population - (a.techLevel + a.population);
+      }
+
+      function isBetween(x, min, max) {
+        return x >= min && x <= max;
+      }
+
+      let displaySettings = true;
+      let displayLoading = false;
+      const hexWidth = 70;
+      const hexHeight = hexWidth * 0.866;
+      const hexHalfWidth = hexWidth / 2;
+      const hexHalfHeight = hexHeight / 2;
+      const hexQuarterWidth = hexWidth / 4;
+      const hexThreeQuartersWidth = hexQuarterWidth * 3;
+
+      function generateSector() {
+        generatePlanetLocations();
+        planets.sort(comparePlanetsByPopAndTech);
+        generateTradeRoutes();
+        planets.sort(comparePlanetsByCoords);
+        let half = Math.ceil(planets.length / 2);
+        evenPlanets = planets.slice(0, Math.ceil(planets.length / 2));
+        oddPlanets = planets.slice(-Math.ceil(planets.length / 2));
+      }
+
+      var app = new Vue({
+        el: "#app",
+        data: {
+          densityMatrix: subsectorDensities,
+          subsectorMatrix: subsectorMatrix,
+          planetArray: planets,
+          planetFirstArray: evenPlanets,
+          planetSecondArray: oddPlanets,
+          tradeRouteArray: tradeRoutes,
+          hexWidth: hexWidth,
+          hexHeight: hexHeight,
+          hexHalfWidth: hexHalfWidth,
+          hexHalfHeight: hexHalfHeight,
+          hexQuarterWidth: hexQuarterWidth,
+          hexThreeQuartersWidth: hexThreeQuartersWidth,
+          displaySettings: displaySettings,
+          planetNameSize: 0.6,
+        },
+        methods: {
+          generate: function () {
+            generateSector();
+            this.displaySettings = false;
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
