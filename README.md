@@ -1,14 +1,14 @@
 # traveller-sector-generator
 
-This template should help get you started developing with Vue 3 in Vite.
+Welcome to my implementation of a sector generator for the Traveller role-playing game!
 
-## Recommended IDE Setup
+This generator uses the default rules as provided in Mongoose Traveller 2nd edition. It creates a sector that is composed of 16 subsectors that are each 8 hexes wide and 10 hexes tall. These subsectors are arranged in a 4 by 4 grid to form the sector. The generator creates all of the planets in the sector and then constructs trade routes between them.
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
+The results are first shown in a map of the sector, where the hex coordinates and planet names are inside each hex. In addition, trade routes are shown as lines connecting hexes. Hover over a hex and wait a moment to see the planet's name and UWP in a tooltip. A full table of all planets is also available below the map which shows each planet's location, UWP, bases, trade tags, and travel code.
 
-## Customize configuration
+To generate a sector, simply hit the generate button. If you wish to alter the density of planets in each subsector, you may modify the values in the "Subsector Densities" table. The default value is 0.5, meaning each hex in the corresponding subsector has a 50% to have a planet. A value of 1 will cause every hex in the subsector to have a planet, while a value of 0 will result in no planets existing in the subsector. The rulebook recommends using 0.5 as the default with 0.667 for densely populated subsectors, 0.333 for sparse subsectors, and 0.167 for rift subsectors.
 
-See [Vite Configuration Reference](https://vitejs.dev/config/).
+Please note that generation may take a little while, so do not refresh the page or hit the generate button more than once.
 
 ## Project Setup
 
