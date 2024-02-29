@@ -6,14 +6,22 @@ body {
   background-color: #152238;
 }
 
-#app,
+#app, 
+.app,
 .results,
 .settings {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.results {
   width: 100%;
+}
+
+.settings {
+  width: 80%;
 }
 
 .hex {
