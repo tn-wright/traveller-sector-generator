@@ -33,3 +33,6 @@ coverage
 
 *.tsbuildinfo
 
+# Non-SCSS CSS
+*.css
+*.css.map
