@@ -16,12 +16,31 @@ body {
   justify-content: center;
 }
 
+.github-link {
+  text-align: center;
+
+  &:visited {
+    color: inherit;
+  }
+}
+
+.title {
+  margin-bottom: 0.5rem;
+}
+
 .results {
   width: 100%;
 }
 
 .settings {
-  width: 80%;
+  width: 90%;
+}
+
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .hex {
@@ -86,6 +105,10 @@ body {
 
 .header {
   color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .planetsTable {
@@ -142,4 +165,10 @@ svg {
   padding: 0;
   margin: 0;
   height: 86.6px;
+}
+
+@media (width >= 80rem) {
+  .settings {
+    width: 80%;
+  }
 }

@@ -1,5 +1,5 @@
 * {
-  font-family: 'Roboto Mono', monospace;
+  font-family: "Roboto Mono", monospace;
 }
 
 body {
@@ -10,19 +10,21 @@ body {
 .app,
 .results,
 .settings {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
-  -webkit-box-orient: vertical;
-  -webkit-box-direction: normal;
-  -ms-flex-direction: column;
   flex-direction: column;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
   align-items: center;
-  -webkit-box-pack: center;
-  -ms-flex-pack: center;
   justify-content: center;
+}
+
+.github-link {
+  text-align: center;
+}
+.github-link:visited {
+  color: inherit;
+}
+
+.title {
+  margin-bottom: 0.5rem;
 }
 
 .results {
@@ -30,7 +32,14 @@ body {
 }
 
 .settings {
-  width: 80%;
+  width: 90%;
+}
+
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .hex {
@@ -45,7 +54,6 @@ body {
   fill: transparent;
   opacity: 0;
 }
-
 .overlayHex:hover {
   opacity: 1;
 }
@@ -77,7 +85,6 @@ body {
 .settings button {
   margin-top: 1rem;
 }
-
 .settings p {
   color: white;
   margin: 1rem 5rem;
@@ -93,6 +100,10 @@ body {
 
 .header {
   color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .planetsTable {
@@ -102,20 +113,16 @@ body {
   background-color: #d3d3d3;
   font-size: 0.9rem;
 }
-
 .planetsTable td {
   padding: 0.5rem 1rem;
 }
-
 .planetsTable th {
   text-align: left;
   padding: 0 1rem;
 }
-
 .planetsTable tr:nth-child(odd) {
   background-color: rgba(0, 128, 0, 0.2);
 }
-
 .planetsTable th {
   border-bottom: 1px solid black;
   background-color: #949494;
@@ -123,7 +130,6 @@ body {
   padding-top: 0.25rem;
   padding-bottom: 0.25rem;
 }
-
 .planetsTable th + th,
 .planetsTable td + td {
   border-left: 1px solid black;
@@ -131,10 +137,7 @@ body {
 
 .tableContainer {
   width: 90%;
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
-  -ms-flex-pack: distribute;
   justify-content: space-around;
 }
 
@@ -142,7 +145,6 @@ svg {
   position: relative;
   overflow: visible;
 }
-
 svg:nth-child(even) {
   top: 43.3px;
 }
@@ -153,4 +155,9 @@ svg:nth-child(even) {
   margin: 0;
   height: 86.6px;
 }
-/*# sourceMappingURL=style.css.map */
+
+@media (width >= 80rem) {
+  .settings {
+    width: 80%;
+  }
+}/*# sourceMappingURL=style.css.map */

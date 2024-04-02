@@ -10,7 +10,7 @@ const localDensityMatrix = props.densityMatrix
 </script>
 
 <template>
-  <div class="settings">
+  <div class="settings-container">
     <p>Welcome to my implementation of a sector generator for the Traveller role-playing game!</p>
     <p>
       This generator uses the default rules as provided in Mongoose Traveller 2nd edition. It

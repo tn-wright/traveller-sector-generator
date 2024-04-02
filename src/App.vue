@@ -6,28 +6,6 @@ import * as tradeLib from './scripts/tradeRoutes'
 import * as planetLib from './scripts/planets'
 </script>
 
-<template>
-  <div class="app">
-    <div class="header">
-      <h1 class="Title">Traveller Sector Generator</h1>
-    </div>
-    <div v-if="this.displaySettings" class="settings">
-      <GeneratorSettings
-        :densityMatrix="subsectorDensities"
-        @generateButtonClick="handleGenerateButton"
-        @densityInputChange="handleDensityInputChange"
-      />
-    </div>
-    <div v-if="!this.displaySettings" class="results">
-      <GeneratorResults
-        :subsectorMatrix="subsectorMatrix"
-        :planetArray="planetLib.planets"
-        :tradeRouteArray="tradeLib.tradeRoutes"
-      />
-    </div>
-  </div>
-</template>
-
 <script>
 const subsectorDensities = [
   [0.5, 0.5, 0.5, 0.5],
@@ -128,3 +106,28 @@ export default {
   }
 }
 </script>
+
+<template>
+  <div class="app">
+    <div class="header">
+      <h1 class="title">Traveller Sector Generator</h1>
+      <a href="https://github.com/tn-wright/traveller-sector-generator" class="github-link"
+        >View on Github</a
+      >
+    </div>
+    <div v-if="displaySettings" class="settings">
+      <GeneratorSettings
+        :densityMatrix="subsectorDensities"
+        @generateButtonClick="handleGenerateButton"
+        @densityInputChange="handleDensityInputChange"
+      />
+    </div>
+    <div v-if="!displaySettings" class="results">
+      <GeneratorResults
+        :subsectorMatrix="subsectorMatrix"
+        :planetArray="planetLib.planets"
+        :tradeRouteArray="tradeLib.tradeRoutes"
+      />
+    </div>
+  </div>
+</template>
